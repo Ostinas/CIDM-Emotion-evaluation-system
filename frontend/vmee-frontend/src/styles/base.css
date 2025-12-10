@@ -1,0 +1,20 @@
+/* Global Base Styles */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro", sans-serif;
+  background: radial-gradient(circle at top, #1d293b 0, #020617 45%, #020617 100%);
+  color: var(--text);
+}
+
+/* Utility Classes */
+.muted {
+  color: var(--muted);
+  font-size: 13px;
+}
+

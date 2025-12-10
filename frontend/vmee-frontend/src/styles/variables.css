@@ -1,0 +1,21 @@
+/* CSS Variables and Theme */
+:root {
+  /* Colors */
+  --bg: #0f172a;
+  --bg-elevated: #111827;
+  --sidebar: #0ea5e9;
+  --sidebar-dark: #0284c7;
+  --accent: #38bdf8;
+  --accent-soft: #e0f2fe;
+  --text: #e5e7eb;
+  --muted: #9ca3af;
+  --danger: #f97373;
+  
+  /* Border Radius */
+  --radius-lg: 18px;
+  --radius-md: 12px;
+  
+  /* Shadows */
+  --shadow-soft: 0 18px 40px rgba(15, 23, 42, 0.6);
+}
+
