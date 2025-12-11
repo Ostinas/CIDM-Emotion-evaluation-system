@@ -33,12 +33,13 @@ Thumbs.db
 *.log
 
 # Project specific
-backend/ai/videos/
 backend/ai/*.csv
 *.mp4
 *.avi
 *.mov
-!backend/ai/videos/.gitkeep
+# Keep videos in the backend/ai/videos folder (for now)
+!backend/ai/videos/
+!backend/ai/videos/*.mp4
 
 # Temp files
 *.tmp
