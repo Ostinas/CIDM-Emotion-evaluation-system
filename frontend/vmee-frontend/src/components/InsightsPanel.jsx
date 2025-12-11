@@ -1,4 +1,4 @@
-export default function InsightsPanel({ timeline }) {
+export default function InsightsPanel({ timeline, emotionsEnabled }) {
   if (!timeline || timeline.length === 0) return null;
 
   // Calculate insights
@@ -38,6 +38,41 @@ export default function InsightsPanel({ timeline }) {
   const stdDev = Math.sqrt(variance);
   const isConsistent = stdDev < 0.2;
 
+  // Emotion insights (if enabled)
+  let emotionInsight = null;
+  if (emotionsEnabled) {
+    const framesWithEmotions = timeline.filter(item => item.emotions && item.emotions.total_analyzed > 0);
+    if (framesWithEmotions.length > 0) {
+      const avgEmotionScore = framesWithEmotions.reduce(
+        (sum, item) => sum + (item.emotions?.engagement_score || 0), 0
+      ) / framesWithEmotions.length;
+      
+      // Count dominant emotions across all frames
+      const emotionCounts = {};
+      framesWithEmotions.forEach(item => {
+        const dominant = item.emotions?.dominant_emotions || {};
+        Object.entries(dominant).forEach(([emotion, count]) => {
+          emotionCounts[emotion] = (emotionCounts[emotion] || 0) + count;
+        });
+      });
+      
+      const topEmotion = Object.entries(emotionCounts)
+        .sort((a, b) => b[1] - a[1])[0];
+
+      let moodLevel = "Bored";
+      if (avgEmotionScore > 0.7) moodLevel = "Engaged";
+      else if (avgEmotionScore > 0.4) moodLevel = "Attentive";
+
+      emotionInsight = {
+        title: "Emotional State",
+        value: moodLevel,
+        description: topEmotion 
+          ? `Most common: ${topEmotion[0]} (${(avgEmotionScore * 100).toFixed(0)}% engagement)`
+          : `${(avgEmotionScore * 100).toFixed(0)}% emotional engagement`,
+      };
+    }
+  }
+
   const insights = [
     {
       title: "Overall Engagement",
@@ -66,6 +101,11 @@ export default function InsightsPanel({ timeline }) {
         : "Attention fluctuated significantly",
     },
   ];
+
+  // Add emotion insight if available
+  if (emotionInsight) {
+    insights.push(emotionInsight);
+  }
 
   return (
     <div className="insights-panel">

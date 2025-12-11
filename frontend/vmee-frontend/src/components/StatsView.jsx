@@ -4,8 +4,9 @@ import VideoStream from "./VideoStream";
 import SummaryCards from "./SummaryCards";
 import InsightsPanel from "./InsightsPanel";
 import ExportButton from "./ExportButton";
+import EmotionChart from "./EmotionChart";
 
-export default function StatsView({ timeline, videoId, originalFile }) {
+export default function StatsView({ timeline, videoId, originalFile, emotionsEnabled }) {
   return (
     <section className="panel">
       <div className="stats-header">
@@ -45,7 +46,17 @@ export default function StatsView({ timeline, videoId, originalFile }) {
                 <PeopleChart timeline={timeline} />
               </div>
 
-              <InsightsPanel timeline={timeline} />
+              {emotionsEnabled && (
+                <div className="stats-main-graph emotion-section">
+                  <h3>
+                    <span className="emotion-icon">:)</span>
+                    Emotional Engagement
+                  </h3>
+                  <EmotionChart timeline={timeline} />
+                </div>
+              )}
+
+              <InsightsPanel timeline={timeline} emotionsEnabled={emotionsEnabled} />
             </div>
 
             <div className="stats-side">

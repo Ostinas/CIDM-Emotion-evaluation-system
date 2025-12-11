@@ -11,6 +11,7 @@ export default function UploadView({ onAnalysisComplete, onFileSelected }) {
   const [progress, setProgress] = useState(0);
   const [videoMetadata, setVideoMetadata] = useState(null);
   const [success, setSuccess] = useState(false);
+  const [analyzeEmotions, setAnalyzeEmotions] = useState(false);
 
   useEffect(() => {
     if (file) {
@@ -62,13 +63,17 @@ export default function UploadView({ onAnalysisComplete, onFileSelected }) {
 
     try {
       // Stage 1: Analyzing video
-      setProcessingStage("Analyzing video content...");
+      setProcessingStage(analyzeEmotions 
+        ? "Analyzing video content & emotions..." 
+        : "Analyzing video content...");
       setProgress(10);
       
       const form1 = new FormData();
       form1.append("file", file);
 
-      const resTimeline = await fetch(`${API_URL}/api/analyze-video`, {
+      // Add analyze_emotions as query parameter
+      const analyzeUrl = `${API_URL}/api/analyze-video?analyze_emotions=${analyzeEmotions}`;
+      const resTimeline = await fetch(analyzeUrl, {
         method: "POST",
         body: form1,
       });
@@ -101,6 +106,7 @@ export default function UploadView({ onAnalysisComplete, onFileSelected }) {
         onAnalysisComplete({
           timeline: dataTimeline.timeline,
           videoId: dataUpload.id,
+          emotionsEnabled: dataTimeline.emotions_enabled || false,
         });
       }, 500);
     } catch (e) {
@@ -207,6 +213,22 @@ export default function UploadView({ onAnalysisComplete, onFileSelected }) {
       )}
 
       {error && <div className="error-box">{error}</div>}
+
+      <div className="analyze-options">
+        <label className="checkbox-label">
+          <input
+            type="checkbox"
+            checked={analyzeEmotions}
+            onChange={(e) => setAnalyzeEmotions(e.target.checked)}
+            disabled={loading}
+          />
+          <span className="checkbox-custom"></span>
+          <span className="checkbox-text">
+            Analyze emotions
+            <span className="checkbox-hint">Detect viewer emotional states (slower)</span>
+          </span>
+        </label>
+      </div>
 
       <button
         className="primary-btn"

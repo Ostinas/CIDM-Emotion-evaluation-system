@@ -11,6 +11,7 @@ function App() {
   const [videoId, setVideoId] = useState(null);   
   const [originalFile, setOriginalFile] = useState(null);
   const [toast, setToast] = useState(null);
+  const [emotionsEnabled, setEmotionsEnabled] = useState(false);
 
   const showToast = (message, type = "info") => {
     setToast({ message, type });
@@ -19,6 +20,7 @@ function App() {
   const handleAnalysisComplete = (data) => {
     setTimeline(data.timeline);
     setVideoId(data.videoId);
+    setEmotionsEnabled(data.emotionsEnabled || false);
     showToast("Analysis completed successfully!", "success");
     setTimeout(() => {
       setActiveTab("stats");
@@ -42,6 +44,7 @@ function App() {
             timeline={timeline}
             videoId={videoId}
             originalFile={originalFile}
+            emotionsEnabled={emotionsEnabled}
           />
         )}
       </main>
