@@ -1,0 +1,10 @@
+fastapi==0.124.2
+uvicorn==0.38.0
+opencv-python==4.10.0.84
+ultralytics==8.3.235
+numpy==1.26.4
+mediapipe==0.10.21
+python-multipart==0.0.20
+onnxruntime==1.23.2
+hsemotion-onnx==0.3.1
+

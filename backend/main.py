@@ -36,7 +36,10 @@ def delete_file_safe(path: str):
         pass
 
 @app.post("/api/analyze-video")
-async def analyze_video_endpoint(file: UploadFile = File(...)):
+async def analyze_video_endpoint(
+    file: UploadFile = File(...),
+    analyze_emotions: bool = False
+):
     if not file.content_type.startswith("video/"):
         raise HTTPException(400, "File must be a video")
 
@@ -48,8 +51,8 @@ async def analyze_video_endpoint(file: UploadFile = File(...)):
         buffer.write(await file.read())
 
     try:
-        timeline = analyze_video(tmp_path)
-        return {"timeline": timeline}
+        timeline = analyze_video(tmp_path, analyze_emotions=analyze_emotions)
+        return {"timeline": timeline, "emotions_enabled": analyze_emotions}
     except Exception as e:
         raise HTTPException(500, str(e))
     finally:

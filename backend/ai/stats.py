@@ -3,7 +3,8 @@ from ai.utils import (
     YAW_SMALL, YAW_MED, PITCH_MED,
     WINDOW, FACE_TOP, FACE_BOTTOM,
     FACE_3D_MODEL, POINT_IDS,
-    is_looking, PersonTrack, assign_track
+    is_looking, PersonTrack, assign_track,
+    get_face_crop_from_keypoints
 )
 
 import cv2
@@ -12,7 +13,7 @@ import math
 import csv
 
 
-SAMPLE_INTERVAL = 5.0 
+SAMPLE_INTERVAL = 3.0 
 
 def main(video_path: str):
     timeline = analyze_video(video_path)
@@ -28,7 +29,11 @@ def main(video_path: str):
                 row["percent"],
             ])
 
-def analyze_video(video_path: str):
+def analyze_video(video_path: str, analyze_emotions: bool = False):
+    # Lazy import emotion module only when needed
+    if analyze_emotions:
+        from ai.emotions import analyze_face_emotion, aggregate_emotions
+    
     cap = cv2.VideoCapture(video_path)
     if not cap.isOpened():
         raise RuntimeError(f"Could not open video: {video_path}")
@@ -58,12 +63,20 @@ def analyze_video(video_path: str):
 
         total_people = 0
         looking_count = 0
+        frame_emotions = []  # Collect emotions for this frame
 
         for r in results:
             if r.boxes is None:
                 continue
 
-            for box in r.boxes:
+            # Get keypoints if available for better face extraction
+            kpts_data = None
+            if r.keypoints is not None:
+                kpts_xy = r.keypoints.xy
+                if hasattr(kpts_xy, 'cpu'):
+                    kpts_xy = kpts_xy.cpu().numpy()
+
+            for idx, box in enumerate(r.boxes):
                 x1, y1, x2, y2 = map(int, box.xyxy[0])
                 total_people += 1
 
@@ -77,6 +90,25 @@ def analyze_video(video_path: str):
                     continue
 
                 face = frame[fy1:fy2, x1:x2]
+                
+                # Analyze emotions if enabled - use keypoints for better face crop
+                if analyze_emotions:
+                    emotion_face = None
+                    
+                    # Try to get face from keypoints first (more accurate)
+                    if kpts_xy is not None and idx < len(kpts_xy):
+                        person_kpts = kpts_xy[idx]
+                        emotion_face = get_face_crop_from_keypoints(frame, person_kpts)
+                    
+                    # Fallback to body-based crop if keypoints failed
+                    if emotion_face is None and face.size > 0:
+                        emotion_face = face
+                    
+                    if emotion_face is not None and emotion_face.size > 0:
+                        emotion_result = analyze_face_emotion(emotion_face)
+                        if emotion_result:
+                            frame_emotions.append(emotion_result)
+                
                 mesh = face_mesh.process(cv2.cvtColor(face, cv2.COLOR_BGR2RGB))
 
                 if not mesh.multi_face_landmarks:
@@ -125,12 +157,19 @@ def analyze_video(video_path: str):
 
         percent = looking_count / total_people if total_people else 0.0
 
-        timeline.append({
+        frame_data = {
             "time_sec": round(time_sec, 2),
             "total_people": total_people,
             "people_looking": looking_count,
             "percent": round(percent, 3),
-        })
+        }
+        
+        # Add emotion data if enabled
+        if analyze_emotions:
+            emotion_stats = aggregate_emotions(frame_emotions)
+            frame_data["emotions"] = emotion_stats
+        
+        timeline.append(frame_data)
 
     cap.release()
     return timeline

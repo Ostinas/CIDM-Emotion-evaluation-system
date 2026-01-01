@@ -95,3 +95,81 @@ def assign_track(trackers, x, y):
     nt = PersonTrack()
     trackers.append((x, y, nt))
     return nt
+
+
+def get_face_crop_from_keypoints(frame, keypoints):
+    """
+    Extract a tight face crop using YOLO pose keypoints.
+    Keypoints: 0=nose, 1=left_eye, 2=right_eye, 3=left_ear, 4=right_ear
+    
+    Uses only nose and eyes (not ears) for more accurate face crop.
+    
+    Args:
+        frame: Full video frame (BGR)
+        keypoints: Array of keypoints with shape (17, 2) or (17, 3)
+        
+    Returns:
+        Face crop (BGR image) or None if face cannot be extracted
+    """
+    h, w = frame.shape[:2]
+    
+    # Get only nose and eyes (indices 0, 1, 2) - ignore ears as they spread too wide
+    if hasattr(keypoints, 'cpu'):
+        keypoints = keypoints.cpu().numpy()
+    
+    nose = keypoints[0]
+    left_eye = keypoints[1]
+    right_eye = keypoints[2]
+    
+    # Check if we have valid nose and at least one eye
+    nose_valid = nose[0] > 0 and nose[1] > 0
+    left_valid = left_eye[0] > 0 and left_eye[1] > 0
+    right_valid = right_eye[0] > 0 and right_eye[1] > 0
+    
+    if not nose_valid or (not left_valid and not right_valid):
+        return None
+    
+    # Calculate eye distance for face size estimation
+    if left_valid and right_valid:
+        eye_distance = abs(right_eye[0] - left_eye[0])
+        eye_center_x = (left_eye[0] + right_eye[0]) / 2
+        eye_center_y = (left_eye[1] + right_eye[1]) / 2
+    elif left_valid:
+        eye_distance = abs(nose[0] - left_eye[0]) * 2
+        eye_center_x = left_eye[0]
+        eye_center_y = left_eye[1]
+    else:
+        eye_distance = abs(nose[0] - right_eye[0]) * 2
+        eye_center_x = right_eye[0]
+        eye_center_y = right_eye[1]
+    
+    # Eye distance is roughly 45% of face width
+    # Face height is roughly 1.2x face width
+    face_width = eye_distance * 2.2
+    face_height = face_width * 1.2
+    
+    # Minimum face size
+    face_width = max(face_width, 80)
+    face_height = max(face_height, 100)
+    
+    # Face center is between eyes and nose
+    face_center_x = (eye_center_x + nose[0]) / 2
+    face_center_y = (eye_center_y + nose[1]) / 2
+    
+    # Calculate crop coordinates
+    x1 = int(max(0, face_center_x - face_width / 2))
+    x2 = int(min(w, face_center_x + face_width / 2))
+    y1 = int(max(0, face_center_y - face_height / 2))
+    y2 = int(min(h, face_center_y + face_height / 2))
+    
+    # Ensure minimum size
+    if (x2 - x1) < 64 or (y2 - y1) < 64:
+        return None
+    
+    # Extract face crop
+    face_crop = frame[y1:y2, x1:x2]
+    
+    if face_crop.size == 0:
+        return None
+    
+    return face_crop

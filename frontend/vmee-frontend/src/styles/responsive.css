@@ -1,0 +1,77 @@
+/* Responsive Design - Mobile & Tablet */
+
+@media (max-width: 900px) {
+  /* Layout */
+  .app-root {
+    flex-direction: column;
+  }
+
+  .app-main {
+    padding: 18px;
+  }
+
+  .panel {
+    padding: 18px 18px 22px;
+  }
+
+  /* Sidebar */
+  .sidebar {
+    flex-direction: row;
+    align-items: center;
+    width: 100%;
+    box-shadow: 0 8px 25px rgba(15, 23, 42, 0.7);
+  }
+
+  .sidebar-logo {
+    margin-bottom: 0;
+    margin-right: 18px;
+  }
+
+  .sidebar-nav {
+    flex-direction: row;
+  }
+
+  /* Stats */
+  .stats-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .stats-header {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .summary-cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .insights-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Skeleton */
+  .skeleton-cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* Export Buttons */
+  .export-buttons {
+    width: 100%;
+  }
+
+  .export-btn {
+    flex: 1;
+  }
+
+  /* Toast */
+  .toast-container {
+    top: 10px;
+    right: 10px;
+    left: 10px;
+  }
+
+  .toast {
+    min-width: auto;
+  }
+}
+

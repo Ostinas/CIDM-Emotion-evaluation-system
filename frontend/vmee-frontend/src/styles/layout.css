@@ -1,0 +1,85 @@
+/* App Layout */
+.app-root {
+  display: flex;
+  min-height: 100vh;
+}
+
+.app-main {
+  flex: 1;
+  padding: 32px 40px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+/* Sidebar */
+.sidebar {
+  width: 210px;
+  background: linear-gradient(180deg, var(--sidebar), var(--sidebar-dark));
+  color: white;
+  display: flex;
+  flex-direction: column;
+  padding: 24px 18px;
+  box-shadow: 8px 0 35px rgba(15, 23, 42, 0.7);
+  z-index: 10;
+}
+
+.sidebar-logo {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 40px;
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sidebar-btn {
+  border: none;
+  border-radius: 999px;
+  padding: 10px 16px;
+  text-align: left;
+  background: rgba(15, 23, 42, 0.08);
+  color: #e0f2fe;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.sidebar-btn:hover {
+  background: rgba(15, 23, 42, 0.24);
+  transform: translateY(-1px);
+}
+
+.sidebar-btn.active {
+  background: #e0f2fe;
+  color: #0f172a;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.4);
+}
+
+/* Panel Container */
+.panel {
+  width: 100%;
+  max-width: 1100px;
+  background: rgba(15, 23, 42, 0.9);
+  border-radius: var(--radius-lg);
+  padding: 28px 32px 32px;
+  box-shadow: var(--shadow-soft);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+}
+
+.panel-title {
+  font-size: 22px;
+  margin: 0 0 8px;
+}
+
+.panel-subtitle {
+  margin: 0 0 24px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
