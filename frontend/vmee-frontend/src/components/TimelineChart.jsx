@@ -60,7 +60,7 @@ export default function TimelineChart({ timeline }) {
           <YAxis 
             domain={[0, 1]} 
             tickFormatter={(value) => `${(value * 100).toFixed(0)}%`}
-            label={{ value: 'Attention Rate', angle: -90, position: 'insideLeft' }}
+            label={{ value: 'Attention Rate', angle: -90, position: 'outsideLeft', dx: -25, }}
             stroke="#9ca3af"
           />
           <Tooltip content={<CustomTooltip />} />

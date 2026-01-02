@@ -61,12 +61,12 @@ export default function PeopleChart({ timeline }) {
           <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.2)" />
           <XAxis 
             dataKey="time" 
-            label={{ value: 'Time (seconds)', position: 'insideBottom', offset: -5 }}
+            label={{ value: 'Time (seconds)', position: 'insideBottom', offset: -10 }}
             stroke="#9ca3af"
           />
           <YAxis 
             allowDecimals={false}
-            label={{ value: 'Number of People', angle: -90, position: 'insideLeft' }}
+            label={{ value: 'Number of People', angle: -90, position: 'outsideLeft', dx: -10, }}
             stroke="#9ca3af"
           />
           <Tooltip content={<CustomTooltip />} />
