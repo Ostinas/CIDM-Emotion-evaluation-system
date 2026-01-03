@@ -30,7 +30,7 @@ def get_emotion_model():
     global _emotion_model
     if _emotion_model is None:
         from hsemotion_onnx.facial_emotions import HSEmotionRecognizer
-        _emotion_model = HSEmotionRecognizer(model_name='enet_b0_8_best_afew')
+        _emotion_model = HSEmotionRecognizer(model_name='enet_b0_8_va_mtl')
     return _emotion_model
 
 
@@ -145,7 +145,7 @@ def aggregate_emotions(emotion_list):
     valence_weights = {
         'happiness': 1.0,
         'surprise': 0.5,
-        'neutral': 0.2,
+        'neutral': 0.3,
         'sadness': -0.8,
         'anger': -1.0,
         'disgust': -0.7,
@@ -159,7 +159,7 @@ def aggregate_emotions(emotion_list):
     
     # Mood energy
     energy_weights = {
-        'happiness': 0.7,
+        'happiness': 0.8,
         'surprise': 0.9,
         'neutral': 0.3,
         'sadness': 0.2,

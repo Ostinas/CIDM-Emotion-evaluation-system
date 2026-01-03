@@ -6,7 +6,7 @@ YAW_SMALL = 10
 YAW_MED   = 20
 PITCH_MED = 15
 
-WINDOW = 6
+WINDOW = 4
 FACE_TOP = 0.05
 FACE_BOTTOM = 0.55
 
@@ -82,15 +82,31 @@ def is_looking(yaw, pitch):
 
 class PersonTrack:
     def __init__(self):
-        self.window = deque(maxlen=WINDOW)
+        # smoothing window for "looking" decision
+        self.looking_window = deque(maxlen=WINDOW)
+        # smoothing window for presence/persistence
+        self.presence_window = deque(maxlen=WINDOW)
 
     def update(self, looking_now):
-        self.window.append(1 if looking_now else 0)
-        return sum(self.window) / len(self.window) >= 0.5
+        """Update looking status (keeps backwards compatibility).
+        Returns True if the smoothed looking value indicates attention."""
+        self.looking_window.append(1 if looking_now else 0)
+        return sum(self.looking_window) / len(self.looking_window) >= 0.5
+
+    def update_presence(self, seen):
+        """Update presence smoothing. Returns True when the person is considered
+        present (has been seen in enough recent frames)."""
+        self.presence_window.append(1 if seen else 0)
+        present_ratio = sum(self.presence_window) / len(self.presence_window)
+        return present_ratio >= 0.5
+
 
 def assign_track(trackers, x, y):
-    for (px, py, t) in trackers:
+    # Match against existing trackers and update their stored position
+    for i, (px, py, t) in enumerate(trackers):
         if abs(px - x) < 40 and abs(py - y) < 40:
+            # update stored position so future assignments are closer
+            trackers[i] = (x, y, t)
             return t
     nt = PersonTrack()
     trackers.append((x, y, nt))

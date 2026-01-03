@@ -15,6 +15,13 @@ import csv
 
 SAMPLE_INTERVAL = 3.0 
 
+# Improve small/occluded person detection by optionally upscaling small frames
+UPSCALE_FACTOR = 1.5        # multiply frame size when upscaling
+UPSCALE_MIN_DIM = 800       # only upscale when min(frame_height,frame_width) < this
+MIN_FACE_SIZE = 12          # reduce minimum face crop size (was 20)
+CONF_THRESHOLD = 0.4       # minimum detection confidence to consider a box
+
+
 def main(video_path: str):
     timeline = analyze_video(video_path)
 
@@ -58,12 +65,19 @@ def analyze_video(video_path: str, analyze_emotions: bool = False):
             continue
         next_sample_time += SAMPLE_INTERVAL
 
+        # Optionally upscale small frames to improve detection of small/remote people
+        h_orig, w_orig = frame.shape[:2]
+        scale = UPSCALE_FACTOR if min(h_orig, w_orig) < UPSCALE_MIN_DIM else 1.0
+        if scale != 1.0:
+            frame = cv2.resize(frame, (0, 0), fx=scale, fy=scale, interpolation=cv2.INTER_LINEAR)
         h, w = frame.shape[:2]
-        results = pose_model(frame, verbose=False)
+        results = pose_model(frame, verbose=False)  # detections are now in potentially upscaled coordinates
 
         total_people = 0
         looking_count = 0
         frame_emotions = []  # Collect emotions for this frame
+
+        seen_tracks = set()
 
         for r in results:
             if r.boxes is None:
@@ -77,8 +91,12 @@ def analyze_video(video_path: str, analyze_emotions: bool = False):
                     kpts_xy = kpts_xy.cpu().numpy()
 
             for idx, box in enumerate(r.boxes):
+                # Skip very low-confidence detections
+                conf = float(box.conf[0]) if getattr(box, 'conf', None) is not None else 1.0
+                if conf < CONF_THRESHOLD:
+                    continue
+
                 x1, y1, x2, y2 = map(int, box.xyxy[0])
-                total_people += 1
 
                 hbox = y2 - y1
                 fy1 = int(y1 + FACE_TOP * hbox)
@@ -86,7 +104,8 @@ def analyze_video(video_path: str, analyze_emotions: bool = False):
                 fw = x2 - x1
                 fh = fy2 - fy1
 
-                if fw < 20 or fh < 20:
+                # allow smaller face crops; upscaling should help small detections
+                if fw < MIN_FACE_SIZE or fh < MIN_FACE_SIZE:
                     continue
 
                 face = frame[fy1:fy2, x1:x2]
@@ -150,11 +169,22 @@ def analyze_video(video_path: str, analyze_emotions: bool = False):
                 cx = (x1 + x2) // 2
                 cy = (y1 + y2) // 2
                 track = assign_track(trackers, cx, cy)
+
+                # mark that this track was seen this frame and update presence smoothing
+                seen_tracks.add(track)
+                present = track.update_presence(True)
+
+                # update looking smoothing and only count looking people that are considered present
                 looking_smooth = track.update(looking_now)
+                if present:
+                    total_people += 1
+                    if looking_smooth:
+                        looking_count += 1
 
-                if looking_smooth:
-                    looking_count += 1
-
+        # For any trackers not seen this frame, mark them as unseen for presence smoothing
+        for i, (px, py, t) in enumerate(trackers):
+            if t not in seen_tracks:
+                t.update_presence(False)
         percent = looking_count / total_people if total_people else 0.0
 
         frame_data = {
