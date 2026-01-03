@@ -8,11 +8,15 @@ from fastapi.responses import StreamingResponse
 from fastapi.responses import FileResponse
 
 from ai.stats import analyze_video
-from ai.models import pose_model as model
-from ai.utils import head_box, estimate_attention
+from ai.models import pose_model as model, face_mesh
+from ai.utils import (
+    head_box, estimate_attention, attention_score, get_face_crop_from_keypoints,
+    assign_track, is_looking, POINT_IDS, FACE_3D_MODEL, FACE_TOP, FACE_BOTTOM, FACE_SIZE_REF
+)
 
 import cv2
 import numpy as np
+import math
 
 
 app = FastAPI()
@@ -54,7 +58,12 @@ async def analyze_video_endpoint(
         timeline = analyze_video(tmp_path, analyze_emotions=analyze_emotions)
         return {"timeline": timeline, "emotions_enabled": analyze_emotions}
     except Exception as e:
-        raise HTTPException(500, str(e))
+        import traceback
+        tb = traceback.format_exc()
+        # Log full traceback to server output to aid debugging
+        print("Error analyzing video:\n", tb)
+        # Return a concise message but include the exception string for quick feedback
+        raise HTTPException(status_code=500, detail=f"Error analyzing video: {e}. Check server logs for traceback.")
     finally:
         delete_file_safe(tmp_path)
 
@@ -84,6 +93,7 @@ def stream_temp(video_id: str):
     def generate():
         cap = cv2.VideoCapture(video_path)
 
+        trackers = []
         while True:
             ret, frame = cap.read()
             if not ret:
@@ -92,6 +102,7 @@ def stream_temp(video_id: str):
             h, w = frame.shape[:2]
             results = model(frame, verbose=False)
 
+            seen_tracks = set()
             for r in results:
                 if r.keypoints is None:
                     continue
@@ -103,15 +114,92 @@ def stream_temp(video_id: str):
                     if box is None:
                         continue
                     x1, y1, x2, y2 = box
-                    if estimate_attention(person_kpts):
+
+                    # Try face-mesh + solvePnP on a per-face crop for better accuracy
+                    hbox = y2 - y1
+                    fy1 = int(y1 + FACE_TOP * hbox)
+                    fy2 = int(y1 + FACE_BOTTOM * hbox)
+                    fw = x2 - x1
+                    fh = max(1, fy2 - fy1)
+                    face = frame[fy1:fy2, x1:x2]
+
+                    # Reuse `analyze_video` per-face logic for consistency
+                    if face.size > 0:
+                        mesh = face_mesh.process(cv2.cvtColor(face, cv2.COLOR_BGR2RGB))
+
+                        if not mesh.multi_face_landmarks:
+                            # No mesh available; fall back to keypoint heuristic producing a score
+                            if person_kpts is not None:
+                                looking_score = estimate_attention(person_kpts, (w, h))
+                            else:
+                                # no keypoints available — neutral score to avoid flipping
+                                looking_score = 0.5
+                        else:
+                            lm = mesh.multi_face_landmarks[0]
+
+                            pts_2d = []
+                            for pid in POINT_IDS:
+                                p = lm.landmark[pid]
+                                px = p.x * fw + x1
+                                py = p.y * fh + fy1
+                                pts_2d.append([px, py])
+                            pts_2d = np.array(pts_2d, dtype=np.float64)
+
+                            focal = w
+                            center = (w / 2, h / 2)
+                            cam_mat = np.array([
+                                [focal, 0, center[0]],
+                                [0, focal, center[1]],
+                                [0, 0, 1]
+                            ], dtype=np.float64)
+                            dist = np.zeros((4, 1))
+
+                            try:
+                                _, rv, tv = cv2.solvePnP(
+                                    FACE_3D_MODEL, pts_2d, cam_mat, dist,
+                                    flags=cv2.SOLVEPNP_ITERATIVE
+                                )
+                                R, _ = cv2.Rodrigues(rv)
+                                proj = np.hstack((R, tv))
+                                _, _, _, _, _, _, euler = cv2.decomposeProjectionMatrix(proj)
+                                pitch, yaw, _ = euler.flatten()
+
+                                yaw = yaw if yaw <= 180 else yaw - 360
+                                pitch = pitch if pitch <= 180 else pitch - 360
+
+                                # compute continuous score
+                                looking_score = attention_score(yaw, pitch)
+                            except Exception:
+                                looking_score = None
+                    # Fallback to simple pose-keypoint heuristic if solvePnP or mesh not available
+                    if looking_score is None:
+                        looking_score = estimate_attention(person_kpts, (w, h))
+
+                    # Proximity-based tracking + smoothing (to reduce flicker / transient errors)
+                    cx = (x1 + x2) // 2
+                    cy = (y1 + y2) // 2
+                    track = assign_track(trackers, cx, cy)
+
+                    seen_tracks.add(track)
+                    present = track.update_presence(True)
+                    # track.update accepts floats (0..1) now; pass the continuous score
+                    looking_smooth = track.update(looking_score)
+
+                    if present and looking_smooth:
                         color = (0, 255, 0)
                         label = "LOOKING"
                     else:
                         color = (0, 0, 255)
                         label = "NOT LOOKING"
+
                     cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
                     cv2.putText(frame, label, (x1, y1 - 8),
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
+
+            # Mark unseen trackers as unseen for presence smoothing
+            for i, (px, py, t) in enumerate(trackers):
+                if t not in seen_tracks:
+                    t.update_presence(False)
 
             _, jpg = cv2.imencode('.jpg', frame)
 

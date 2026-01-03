@@ -33,7 +33,8 @@ def main(video_path: str):
                     continue
                 x1, y1, x2, y2 = box
 
-                if estimate_attention(person_kpts):
+                score = estimate_attention(person_kpts, (w, h))
+                if score >= 0.5:
                     color = (0, 255, 0)
                     label = "LOOKING"
                 else:

@@ -3,7 +3,7 @@ from ai.utils import (
     YAW_SMALL, YAW_MED, PITCH_MED,
     WINDOW, FACE_TOP, FACE_BOTTOM,
     FACE_3D_MODEL, POINT_IDS,
-    is_looking, PersonTrack, assign_track,
+    is_looking, attention_score, estimate_attention, PersonTrack, assign_track,
     get_face_crop_from_keypoints
 )
 
@@ -16,10 +16,10 @@ import csv
 SAMPLE_INTERVAL = 3.0 
 
 # Improve small/occluded person detection by optionally upscaling small frames
-UPSCALE_FACTOR = 1.5        # multiply frame size when upscaling
+UPSCALE_FACTOR = 1.6        # multiply frame size when upscaling
 UPSCALE_MIN_DIM = 800       # only upscale when min(frame_height,frame_width) < this
 MIN_FACE_SIZE = 12          # reduce minimum face crop size (was 20)
-CONF_THRESHOLD = 0.4       # minimum detection confidence to consider a box
+CONF_THRESHOLD = 0.3       # minimum detection confidence to consider a box
 
 
 def main(video_path: str):
@@ -84,13 +84,17 @@ def analyze_video(video_path: str, analyze_emotions: bool = False):
                 continue
 
             # Get keypoints if available for better face extraction
-            kpts_data = None
+            kpts_xy = None
             if r.keypoints is not None:
                 kpts_xy = r.keypoints.xy
                 if hasattr(kpts_xy, 'cpu'):
                     kpts_xy = kpts_xy.cpu().numpy()
 
             for idx, box in enumerate(r.boxes):
+                # per-box: grab corresponding pose keypoints if present
+                person_kpts = None
+                if kpts_xy is not None and idx < len(kpts_xy):
+                    person_kpts = kpts_xy[idx]
                 # Skip very low-confidence detections
                 conf = float(box.conf[0]) if getattr(box, 'conf', None) is not None else 1.0
                 if conf < CONF_THRESHOLD:
@@ -131,7 +135,12 @@ def analyze_video(video_path: str, analyze_emotions: bool = False):
                 mesh = face_mesh.process(cv2.cvtColor(face, cv2.COLOR_BGR2RGB))
 
                 if not mesh.multi_face_landmarks:
-                    looking_now = True
+                    # No mesh available; fall back to keypoint heuristic producing a score
+                    if person_kpts is not None:
+                        looking_score = estimate_attention(person_kpts, (w, h))
+                    else:
+                        # no keypoints available — neutral score to avoid flipping
+                        looking_score = 0.5
                 else:
                     lm = mesh.multi_face_landmarks[0]
 
@@ -164,8 +173,8 @@ def analyze_video(video_path: str, analyze_emotions: bool = False):
                     yaw = yaw if yaw <= 180 else yaw - 360
                     pitch = pitch if pitch <= 180 else pitch - 360
 
-                    looking_now = is_looking(yaw, pitch)
-
+                    # compute continuous score
+                    looking_score = attention_score(yaw, pitch)
                 cx = (x1 + x2) // 2
                 cy = (y1 + y2) // 2
                 track = assign_track(trackers, cx, cy)
@@ -174,8 +183,8 @@ def analyze_video(video_path: str, analyze_emotions: bool = False):
                 seen_tracks.add(track)
                 present = track.update_presence(True)
 
-                # update looking smoothing and only count looking people that are considered present
-                looking_smooth = track.update(looking_now)
+                # update looking smoothing (now accepts float scores) and only count looking people that are considered present
+                looking_smooth = track.update(looking_score)
                 if present:
                     total_people += 1
                     if looking_smooth:
