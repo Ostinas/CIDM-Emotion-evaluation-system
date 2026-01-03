@@ -43,6 +43,7 @@ export default function TimelineChart({ timeline }) {
 
   return (
     <div className="chart-wrapper">
+      <h4>Attention Over Time</h4>
       <ResponsiveContainer width="100%" height={300}>
         <AreaChart data={data}>
           <defs>

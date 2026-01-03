@@ -181,6 +181,10 @@
   width: 100%;
 }
 
+.people-section {
+  margin-top: 24px;
+}
+
 /* Emotion Section */
 .emotion-section {
   border: 1px solid rgba(167, 139, 250, 0.2);
@@ -252,6 +256,13 @@
   .emotion-charts-row {
     grid-template-columns: 1fr;
   }
+}
+
+.chart-wrapper h4 {
+  margin: 0 8px 8px;
+  font-size: 16px;
+  color: var(--text);
+  font-weight: 500;
 }
 
 /* Mood Chart */

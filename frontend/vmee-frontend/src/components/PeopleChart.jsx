@@ -46,6 +46,7 @@ export default function PeopleChart({ timeline }) {
 
   return (
     <div className="chart-wrapper">
+      <h4>People Watching</h4>
       <ResponsiveContainer width="100%" height={300}>
         <AreaChart data={data}>
           <defs>

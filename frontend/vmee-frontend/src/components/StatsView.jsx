@@ -37,12 +37,10 @@ export default function StatsView({ timeline, videoId, originalFile, emotionsEna
           <div className="stats-layout">
             <div className="stats-main">
               <div className="stats-main-graph">
-                <h3>Attention Over Time</h3>
                 <TimelineChart timeline={timeline} />
               </div>
 
-              <div className="stats-main-graph">
-                <h3>People Watching</h3>
+              <div className="stats-main-graph people-section">
                 <PeopleChart timeline={timeline} />
               </div>
 
