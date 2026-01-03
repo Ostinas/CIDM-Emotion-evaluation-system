@@ -91,12 +91,23 @@ export default function EmotionLines({ timeline }) {
         ))}
       </div>
 
-      <div style={{ width: "100%", height: 200 }}>
+      <div style={{ width: "100%", height: 220 }}>
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data}>
+          <LineChart data={data} margin={{ bottom: 10 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.12)" />
-            <XAxis dataKey="time" stroke="#9ca3af" tickFormatter={(v) => `${v}s`} />
-            <YAxis domain={[0, 100]} ticks={[0, 25, 50, 75, 100]} tickFormatter={(v) => `${v}%`} stroke="#9ca3af" />
+            <XAxis 
+                dataKey="time" 
+                stroke="#9ca3af" 
+                label={{ value: 'Time', position: 'insideBottom', offset: -10 }}
+                tickFormatter={(v) => `${v}s`}
+            />
+            <YAxis 
+                domain={[0, 100]} 
+                label={{ value: 'Detected Emotions', angle: -90, position: 'outsideLeft', dx: -25, }}
+                ticks={[0, 25, 50, 75, 100]} 
+                tickFormatter={(v) => `${v}%`} 
+                stroke="#9ca3af" 
+            />
             <Tooltip
                 formatter={(value, name) => [`${Number(value).toFixed(0)}%`, name]}
                 labelFormatter={(label) => `Time: ${label}s`}

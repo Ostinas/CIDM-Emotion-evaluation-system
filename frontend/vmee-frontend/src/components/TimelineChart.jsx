@@ -54,8 +54,9 @@ export default function TimelineChart({ timeline }) {
           <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.2)" />
           <XAxis 
             dataKey="time" 
-            label={{ value: 'Time (seconds)', position: 'insideBottom', offset: -10 }}
+            label={{ value: 'Time', position: 'insideBottom', offset: -10 }}
             stroke="#9ca3af"
+            tickFormatter={(v) => `${v}s`}
           />
           <YAxis 
             domain={[0, 1]} 

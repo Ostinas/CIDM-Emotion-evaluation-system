@@ -189,18 +189,20 @@ function MoodChart({ timeline }) {
         <span style={{ color: "#4ade80" }}>Valence</span> (positive/negative) & 
         <span style={{ color: "#f97316" }}> Energy</span> (activity level)
       </p>
-      <ResponsiveContainer width="100%" height={180}>
-        <LineChart data={data}>
+      <ResponsiveContainer width="100%" height={220}>
+        <LineChart data={data} margin={{ bottom: -10, left: 0, right: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.2)" />
           <XAxis 
             dataKey="time" 
             stroke="#9ca3af"
+            label={{ value: 'Time', position: 'insideBottom', offset: -5 }}
             tickFormatter={(v) => `${v}s`}
           />
           <YAxis 
             domain={[-1, 1]} 
+            label={{ value: 'Mood Rate', angle: -90, position: 'outsideLeft', dx: -20, }}
             ticks={[-1, -0.5, 0, 0.5, 1]}
-            tickFormatter={(v) => v === 0 ? "0" : v > 0 ? `+${v}` : `${v}`}
+            tickFormatter={(v) => v === 0 ? "0" : v > 0 ? `${v}` : `${v}`}
             stroke="#9ca3af"
           />
           <Tooltip content={<MoodTooltip />} />
@@ -344,7 +346,7 @@ export default function EmotionChart({ timeline }) {
       {/* Main Engagement Chart */}
       <div className="chart-wrapper">
         <ResponsiveContainer width="100%" height={220}>
-          <AreaChart data={data}>
+          <AreaChart data={data} >
             <defs>
               <linearGradient id="colorEngagement" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor="#a78bfa" stopOpacity={0.3}/>
@@ -355,10 +357,12 @@ export default function EmotionChart({ timeline }) {
             <XAxis 
               dataKey="time" 
               stroke="#9ca3af"
+              label={{ value: 'Time', position: 'insideBottom', offset: -5 }}
               tickFormatter={(v) => `${v}s`}
             />
             <YAxis 
               domain={[0, 1]} 
+              label={{ value: 'Engagement Rate', angle: -90, position: 'outsideLeft', dx: -28, }}
               tickFormatter={(value) => `${(value * 100).toFixed(0)}%`}
               stroke="#9ca3af"
             />

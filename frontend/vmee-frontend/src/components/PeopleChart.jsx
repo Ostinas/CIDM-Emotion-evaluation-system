@@ -61,8 +61,9 @@ export default function PeopleChart({ timeline }) {
           <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.2)" />
           <XAxis 
             dataKey="time" 
-            label={{ value: 'Time (seconds)', position: 'insideBottom', offset: -10 }}
+            label={{ value: 'Time', position: 'insideBottom', offset: -10 }}
             stroke="#9ca3af"
+            tickFormatter={(v) => `${v}s`}
           />
           <YAxis 
             allowDecimals={false}
@@ -77,7 +78,7 @@ export default function PeopleChart({ timeline }) {
           <Area
             type="monotone"
             dataKey="watching"
-            name="People Watching"
+            name="Watching people count"
             stroke="#4ade80"
             strokeWidth={3}
             fill="url(#colorWatching)"
@@ -86,7 +87,7 @@ export default function PeopleChart({ timeline }) {
           <Area
             type="monotone"
             dataKey="notWatching"
-            name="Not Watching"
+            name="Detected people count"
             stroke="#f87171"
             strokeWidth={2}
             fill="url(#colorNotWatching)"
