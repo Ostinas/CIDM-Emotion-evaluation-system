@@ -13,6 +13,7 @@ import {
   Pie,
   Cell,
 } from "recharts";
+import EmotionLines from "./EmotionLines";
 
 // All 8 emotions from HSEmotion model
 const EMOTION_LABELS = ['anger', 'contempt', 'disgust', 'fear', 'happiness', 'neutral', 'sadness', 'surprise'];
@@ -64,6 +65,18 @@ const MoodTooltip = ({ active, payload }) => {
           Energy: {(data.energy * 100).toFixed(0)}% 
           {data.energy > 0.5 ? " (High)" : " (Low)"}
         </p>
+      </div>
+    );
+  }
+  return null;
+};
+
+const EmotionTooltip = ({ active, payload }) => {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    return (
+      <div className="emotion-tooltip">
+        <p className="emotion-tooltip-label">{data.name}: {data.value}%</p>
       </div>
     );
   }
@@ -127,7 +140,7 @@ function EmotionBreakdown({ timeline }) {
               nameKey="name"
               cx="50%"
               cy="50%"
-              outerRadius={65}
+              outerRadius={50}
               label={({ name, value }) => value > 5 ? `${name}: ${value}%` : ''}
               labelLine={false}
             >
@@ -135,7 +148,7 @@ function EmotionBreakdown({ timeline }) {
                 <Cell key={`cell-${index}`} fill={entry.color} />
               ))}
             </Pie>
-            <Tooltip formatter={(value) => `${value}%`} />
+            <Tooltip content={<EmotionTooltip />} />
           </PieChart>
         </ResponsiveContainer>
       </div>
@@ -371,6 +384,10 @@ export default function EmotionChart({ timeline }) {
       <div className="emotion-charts-row">
         <MoodChart timeline={timeline} />
         <EmotionBreakdown timeline={timeline} />
+      </div>
+      
+      <div className="full-width-chart">
+        <EmotionLines timeline={timeline} />
       </div>
     </div>
   );

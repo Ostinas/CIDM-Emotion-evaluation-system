@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import ProgressBar from "./ProgressBar";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -8,7 +9,6 @@ export default function UploadView({ onAnalysisComplete, onFileSelected }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [processingStage, setProcessingStage] = useState("");
-  const [progress, setProgress] = useState(0);
   const [videoMetadata, setVideoMetadata] = useState(null);
   const [success, setSuccess] = useState(false);
   const [analyzeEmotions, setAnalyzeEmotions] = useState(false);
@@ -59,14 +59,12 @@ export default function UploadView({ onAnalysisComplete, onFileSelected }) {
     setLoading(true);
     setError("");
     setSuccess(false);
-    setProgress(0);
 
     try {
       // Stage 1: Analyzing video
       setProcessingStage(analyzeEmotions 
         ? "Analyzing video content & emotions..." 
         : "Analyzing video content...");
-      setProgress(10);
       
       const form1 = new FormData();
       form1.append("file", file);
@@ -78,13 +76,11 @@ export default function UploadView({ onAnalysisComplete, onFileSelected }) {
         body: form1,
       });
       
-      setProgress(60);
       if (!resTimeline.ok) throw new Error("Analysis failed.");
       const dataTimeline = await resTimeline.json();
 
       // Stage 2: Uploading for preview
       setProcessingStage("Preparing video preview...");
-      setProgress(70);
       
       const form2 = new FormData();
       form2.append("file", file);
@@ -94,11 +90,9 @@ export default function UploadView({ onAnalysisComplete, onFileSelected }) {
         body: form2,
       });
       
-      setProgress(90);
       if (!resUpload.ok) throw new Error("Video upload for preview failed.");
       const dataUpload = await resUpload.json();
 
-      setProgress(100);
       setProcessingStage("Analysis complete!");
       setSuccess(true);
       
@@ -111,7 +105,6 @@ export default function UploadView({ onAnalysisComplete, onFileSelected }) {
       }, 500);
     } catch (e) {
       setError(e.message || "Something went wrong.");
-      setProgress(0);
       setProcessingStage("");
     } finally {
       setTimeout(() => {
@@ -193,15 +186,12 @@ export default function UploadView({ onAnalysisComplete, onFileSelected }) {
 
       {loading && (
         <div className="progress-container">
-          <div className="progress-bar-wrapper">
-            <div 
-              className="progress-bar-fill" 
-              style={{ width: `${progress}%` }}
-            ></div>
-          </div>
+          <ProgressBar
+            isLoading={true}
+            percent={40}
+          />
           <div className="progress-info">
             <span className="progress-stage">{processingStage}</span>
-            <span className="progress-percent">{progress}%</span>
           </div>
         </div>
       )}

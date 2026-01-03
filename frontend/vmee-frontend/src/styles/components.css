@@ -92,9 +92,23 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
+.emotion-tooltip {
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: 8px;
+  padding: 4px 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.emotion-tooltip-label {
+  margin: 8px 0;
+  color: var(--muted);
+  font-weight: 600;
+}
+
 .tooltip-time {
   margin: 0 0 6px;
-  font-size: 12px;
+  font-size: 16px;
   color: var(--muted);
   font-weight: 600;
 }
@@ -197,3 +211,37 @@
   justify-content: flex-end;
 }
 
+@keyframes moveToRight {
+  from {
+    left: 0;
+  }
+  to {
+    left: 100%;
+  }
+}
+
+.progress-outer {
+  display: flex;
+  align-items: center;
+}
+
+.progress {
+  width: 100%;
+  background: #eee;
+  min-height: 1px;
+  position: relative;
+  overflow: hidden;
+  border-radius: 3px;
+  height: 8px;
+}
+
+.progress-bar {
+  background: linear-gradient(90deg, #38bdf8, #4ade80);
+  background-position: 0 0;
+  height: 100%;
+  position: absolute;
+}
+
+.progress.progress--loading .progress-bar {
+  animation: moveToRight 1.2s infinite linear;
+}

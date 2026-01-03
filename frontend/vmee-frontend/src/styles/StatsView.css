@@ -264,7 +264,21 @@
 
 .mood-chart h4 {
   margin: 0 0 4px;
-  font-size: 13px;
+  font-size: 16px;
+  color: var(--text);
+  font-weight: 500;
+}
+
+.emotion-line-chart {
+  background: rgba(15, 23, 42, 0.3);
+  border-radius: 8px;
+  padding: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.1);
+}
+
+.emotion-line-chart h4 {
+  margin: 0 0 4px;
+  font-size: 16px;
   color: var(--text);
   font-weight: 500;
 }
@@ -285,7 +299,7 @@
 
 .emotion-breakdown h4 {
   margin: 0 0 12px;
-  font-size: 13px;
+  font-size: 16px;
   color: var(--text);
   font-weight: 500;
 }
@@ -387,4 +401,23 @@
 .moment-time {
   color: var(--muted);
   font-size: 12px;
+}
+
+.emotion-select-btn {
+  border: none;
+  border-radius: 999px;
+  padding: 6px 12px;
+  line-height: 1;
+  font-size: 13px;
+  cursor: pointer;
+  background: rgba(15, 23, 42, 0.8);
+  color: var(--text);
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  transition: all 0.18s ease;
+}
+
+.emotion-select-btn:hover {
+  background: rgba(15, 23, 42, 1);
+  border-color: var(--accent);
+  transform: translateY(-1px);
 }

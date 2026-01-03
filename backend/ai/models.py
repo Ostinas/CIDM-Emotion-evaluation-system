@@ -1,7 +1,7 @@
 from ultralytics import YOLO
 import mediapipe as mp
 
-pose_model = YOLO("yolov8n-pose.pt")
+pose_model = YOLO("yolo11x-pose.pt")
 
 mp_face_mesh = mp.solutions.face_mesh
 face_mesh = mp_face_mesh.FaceMesh(
