@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 import uuid
 import tempfile
 
@@ -30,7 +31,7 @@ app.add_middleware(
 )
 
 TEMP_DIR = tempfile.gettempdir()
-
+UPSCALE_MIN_DIM = 1500
 
 def delete_file_safe(path: str):
     try:
@@ -93,12 +94,24 @@ def stream_temp(video_id: str):
     def generate():
         cap = cv2.VideoCapture(video_path)
 
+        SR_MODEL_PATH = Path(__file__).resolve().parent / "ai" / "FSRCNN_x2.pb"
+
+        sr = cv2.dnn_superres.DnnSuperResImpl_create()
+        sr.readModel(str(SR_MODEL_PATH))
+        sr.setModel("fsrcnn", 2)
+
         trackers = []
         while True:
             ret, frame = cap.read()
             if not ret:
                 break
 
+            h_orig, w_orig = frame.shape[:2]
+            use_sr = min(h_orig, w_orig) < UPSCALE_MIN_DIM
+
+            if use_sr:
+                # DNN Super-Resolution inference
+                frame = sr.upsample(frame)
             h, w = frame.shape[:2]
             results = model(frame, verbose=False)
 
@@ -201,6 +214,12 @@ def stream_temp(video_id: str):
                 if t not in seen_tracks:
                     t.update_presence(False)
 
+            if use_sr:
+                frame = cv2.resize(
+                    frame,
+                    (w_orig, h_orig),
+                    interpolation=cv2.INTER_AREA
+                )
             _, jpg = cv2.imencode('.jpg', frame)
 
             yield (b"--frame\r\n"

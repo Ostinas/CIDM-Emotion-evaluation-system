@@ -1,3 +1,4 @@
+from pathlib import Path
 from ai.models import pose_model, face_mesh
 from ai.utils import (
     YAW_SMALL, YAW_MED, PITCH_MED,
@@ -16,8 +17,7 @@ import csv
 SAMPLE_INTERVAL = 3.0 
 
 # Improve small/occluded person detection by optionally upscaling small frames
-UPSCALE_FACTOR = 1.6        # multiply frame size when upscaling
-UPSCALE_MIN_DIM = 800       # only upscale when min(frame_height,frame_width) < this
+UPSCALE_MIN_DIM = 1500       # only upscale when min(frame_height,frame_width) < this
 MIN_FACE_SIZE = 12          # reduce minimum face crop size (was 20)
 CONF_THRESHOLD = 0.3       # minimum detection confidence to consider a box
 
@@ -45,6 +45,12 @@ def analyze_video(video_path: str, analyze_emotions: bool = False):
     if not cap.isOpened():
         raise RuntimeError(f"Could not open video: {video_path}")
 
+    SR_MODEL_PATH = Path(__file__).resolve().parent / "FSRCNN_x2.pb"
+
+    sr = cv2.dnn_superres.DnnSuperResImpl_create()
+    sr.readModel(str(SR_MODEL_PATH))
+    sr.setModel("fsrcnn", 2)
+
     fps = cap.get(cv2.CAP_PROP_FPS)
     if fps is None or fps <= 1:
         fps = 30.0  
@@ -67,9 +73,11 @@ def analyze_video(video_path: str, analyze_emotions: bool = False):
 
         # Optionally upscale small frames to improve detection of small/remote people
         h_orig, w_orig = frame.shape[:2]
-        scale = UPSCALE_FACTOR if min(h_orig, w_orig) < UPSCALE_MIN_DIM else 1.0
-        if scale != 1.0:
-            frame = cv2.resize(frame, (0, 0), fx=scale, fy=scale, interpolation=cv2.INTER_LINEAR)
+        use_sr = min(h_orig, w_orig) < UPSCALE_MIN_DIM
+
+        if use_sr:
+            # DNN Super-Resolution inference
+            frame = sr.upsample(frame)
         h, w = frame.shape[:2]
         results = pose_model(frame, verbose=False)  # detections are now in potentially upscaled coordinates
 
