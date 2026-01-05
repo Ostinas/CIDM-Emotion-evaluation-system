@@ -56,8 +56,12 @@ async def analyze_video_endpoint(
         buffer.write(await file.read())
 
     try:
-        timeline = analyze_video(tmp_path, analyze_emotions=analyze_emotions)
-        return {"timeline": timeline, "emotions_enabled": analyze_emotions}
+        result = analyze_video(tmp_path, analyze_emotions=analyze_emotions)
+        return {
+            "timeline": result["timeline"],
+            "emotions_enabled": analyze_emotions,
+            "warnings": result.get("warnings", [])
+        }
     except Exception as e:
         import traceback
         tb = traceback.format_exc()

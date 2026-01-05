@@ -11,6 +11,10 @@ WINDOW = 3
 FACE_TOP = 0.05
 FACE_BOTTOM = 0.55
 
+# Static detection parameters
+STATIC_DURATION_THRESHOLD = 180.0  # 3 minutes in seconds
+STATIC_MOVEMENT_THRESHOLD = 5.0    # minimum pixel variance to consider "moving"
+
 FACE_3D_MODEL = np.array([
     [0, 0, 0],
     [-30, -25, -30],
@@ -187,11 +191,22 @@ def is_looking(yaw, pitch, scale=1.0):
     return attention_score(yaw, pitch, scale=scale) >= 0.5
 
 class PersonTrack:
+    _track_counter = 0  # Class-level counter for unique track IDs
+    
     def __init__(self):
+        # Assign unique track ID
+        PersonTrack._track_counter += 1
+        self.track_id = PersonTrack._track_counter
+        
         # smoothing window for continuous looking score (floats 0..1)
         self.looking_window = deque(maxlen=WINDOW)
         # smoothing window for presence/persistence (0/1)
         self.presence_window = deque(maxlen=WINDOW)
+        
+        # Position history for static detection: list of (x, y, timestamp)
+        self.position_history = []
+        self.first_seen_time = None
+        self.last_seen_time = None
 
     def update(self, looking_now):
         """Update looking status with a float score in [0,1] or a boolean.
@@ -209,6 +224,74 @@ class PersonTrack:
         self.presence_window.append(1 if seen else 0)
         present_ratio = sum(self.presence_window) / len(self.presence_window)
         return present_ratio >= 0.5
+    
+    def update_position(self, x, y, timestamp):
+        """Record position at a given timestamp for static detection.
+        
+        Args:
+            x: Center x coordinate of detected person
+            y: Center y coordinate of detected person  
+            timestamp: Time in seconds from video start
+        """
+        if self.first_seen_time is None:
+            self.first_seen_time = timestamp
+        self.last_seen_time = timestamp
+        
+        self.position_history.append((x, y, timestamp))
+        
+        # Keep only positions within the detection window (3 minutes + buffer)
+        cutoff_time = timestamp - STATIC_DURATION_THRESHOLD - 10
+        self.position_history = [
+            (px, py, pt) for px, py, pt in self.position_history 
+            if pt >= cutoff_time
+        ]
+    
+    def get_tracking_duration(self):
+        """Return how long this person has been tracked in seconds."""
+        if self.first_seen_time is None or self.last_seen_time is None:
+            return 0.0
+        return self.last_seen_time - self.first_seen_time
+    
+    def calculate_movement_variance(self):
+        """Calculate the variance of position over the tracking history.
+        
+        Returns:
+            Float representing sqrt(var(x) + var(y)), or None if insufficient data.
+        """
+        if len(self.position_history) < 2:
+            return None
+        
+        x_coords = [p[0] for p in self.position_history]
+        y_coords = [p[1] for p in self.position_history]
+        
+        # Calculate variance
+        x_mean = sum(x_coords) / len(x_coords)
+        y_mean = sum(y_coords) / len(y_coords)
+        
+        x_var = sum((x - x_mean) ** 2 for x in x_coords) / len(x_coords)
+        y_var = sum((y - y_mean) ** 2 for y in y_coords) / len(y_coords)
+        
+        return math.sqrt(x_var + y_var)
+    
+    def is_static(self):
+        """Check if the person appears to be static (not moving) for 3+ minutes.
+        
+        Returns:
+            Tuple of (is_static: bool, duration_sec: float, movement_variance: float or None)
+        """
+        duration = self.get_tracking_duration()
+        
+        # Need at least 3 minutes of tracking data
+        if duration < STATIC_DURATION_THRESHOLD:
+            return False, duration, None
+        
+        variance = self.calculate_movement_variance()
+        
+        if variance is None:
+            return False, duration, None
+        
+        is_static = variance < STATIC_MOVEMENT_THRESHOLD
+        return is_static, duration, variance
 
 
 def assign_track(trackers, x, y):

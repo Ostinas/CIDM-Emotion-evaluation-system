@@ -4,6 +4,7 @@ from ai.utils import (
     YAW_SMALL, YAW_MED, PITCH_MED,
     WINDOW, FACE_TOP, FACE_BOTTOM,
     FACE_3D_MODEL, POINT_IDS,
+    STATIC_DURATION_THRESHOLD,
     is_looking, attention_score, estimate_attention, PersonTrack, assign_track,
     get_face_crop_from_keypoints
 )
@@ -23,7 +24,9 @@ CONF_THRESHOLD = 0.3       # minimum detection confidence to consider a box
 
 
 def main(video_path: str):
-    timeline = analyze_video(video_path)
+    result = analyze_video(video_path)
+    timeline = result["timeline"]
+    warnings = result.get("warnings", [])
 
     with open("attention_timeline.csv", "w", newline="") as f:
         writer = csv.writer(f)
@@ -35,6 +38,12 @@ def main(video_path: str):
                 row["people_looking"],
                 row["percent"],
             ])
+    
+    # Print any static person warnings
+    if warnings:
+        print("\n=== Static Person Warnings ===")
+        for warn in warnings:
+            print(f"  - {warn['message']} (track_id={warn['track_id']}, duration={warn['duration_sec']}s)")
 
 def analyze_video(video_path: str, analyze_emotions: bool = False):
     # Lazy import emotion module only when needed
@@ -190,6 +199,9 @@ def analyze_video(video_path: str, analyze_emotions: bool = False):
                 # mark that this track was seen this frame and update presence smoothing
                 seen_tracks.add(track)
                 present = track.update_presence(True)
+                
+                # Update position history for static detection
+                track.update_position(cx, cy, time_sec)
 
                 # update looking smoothing (now accepts float scores) and only count looking people that are considered present
                 looking_smooth = track.update(looking_score)
@@ -219,7 +231,21 @@ def analyze_video(video_path: str, analyze_emotions: bool = False):
         timeline.append(frame_data)
 
     cap.release()
-    return timeline
+    
+    # Collect static person warnings (separate from statistics)
+    warnings = []
+    for px, py, track in trackers:
+        is_static, duration, variance = track.is_static()
+        if is_static:
+            warnings.append({
+                "type": "static_person",
+                "message": f"Person detected with no movement for {int(duration // 60)} minutes",
+                "track_id": track.track_id,
+                "duration_sec": round(duration, 1),
+                "movement_variance": round(variance, 2) if variance is not None else None
+            })
+    
+    return {"timeline": timeline, "warnings": warnings}
 
 if __name__ == "__main__":
     import sys

@@ -101,6 +101,7 @@ export default function UploadView({ onAnalysisComplete, onFileSelected }) {
           timeline: dataTimeline.timeline,
           videoId: dataUpload.id,
           emotionsEnabled: dataTimeline.emotions_enabled || false,
+          warnings: dataTimeline.warnings || [],
         });
       }, 500);
     } catch (e) {

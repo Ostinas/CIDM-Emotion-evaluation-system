@@ -6,7 +6,7 @@ import InsightsPanel from "./InsightsPanel";
 import ExportButton from "./ExportButton";
 import EmotionChart from "./EmotionChart";
 
-export default function StatsView({ timeline, videoId, originalFile, emotionsEnabled }) {
+export default function StatsView({ timeline, videoId, originalFile, emotionsEnabled, warnings = [] }) {
   return (
     <section className="panel">
       <div className="stats-header">
@@ -20,6 +20,24 @@ export default function StatsView({ timeline, videoId, originalFile, emotionsEna
         </div>
         {timeline && <ExportButton timeline={timeline} />}
       </div>
+
+      {/* Static Person Warnings - Subtle notice */}
+      {warnings.length > 0 && (
+        <div className="warnings-banner">
+          <div className="warnings-header">
+            <span className="warnings-icon">⚠</span>
+            <span className="warnings-title">Static detected</span>
+          </div>
+          <div className="warnings-list">
+            {warnings.map((warning, index) => (
+              <div key={index} className="warning-item">
+                <span className="warning-message">No movement for {Math.floor(warning.duration_sec / 60)}+ min</span>
+              </div>
+            ))}
+          </div>
+          <p className="warnings-note">Possible photo instead of video</p>
+        </div>
+      )}
 
       {!timeline && (
         <div className="empty-state">
